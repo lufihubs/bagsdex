@@ -14,7 +14,6 @@ import {
   faTrophy,
   faAddressCard,
   faShoppingBag,
-  faSearch,
   faTimes,
   faCheck
 } from '@fortawesome/free-solid-svg-icons';
@@ -69,28 +68,6 @@ async function fetchSolanaTokens(): Promise<Token[]> {
     return tokens;
   } catch (error) {
     console.error('🌐 Error fetching tokens:', error);
-    return [];
-  }
-}
-
-// API function to search for specific tokens
-async function searchTokens(query: string): Promise<Token[]> {
-  try {
-    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to search tokens');
-    }
-
-    const tokens = await response.json();
-    return tokens;
-  } catch (error) {
-    console.error('Error searching tokens:', error);
     return [];
   }
 }
@@ -330,9 +307,6 @@ export default function Home() {
   const [updating, setUpdating] = useState(false);
   const [filter, setFilter] = useState<'all' | 'new' | 'bonded' | 'mooning'>('all');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<Token[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
 
@@ -362,37 +336,7 @@ export default function Home() {
     loadTokens();
   }, []);
 
-  // Handle search functionality
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await searchTokens(query);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      handleSearch(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const displayTokens = searchQuery.trim() ? searchResults : tokens;
-  const filteredTokens = displayTokens.filter(token => {
+  const filteredTokens = tokens.filter(token => {
     if (filter === 'all') return true;
     if (filter === 'mooning') return token.marketCap >= 1000000; // Above $1M
     return token.status === filter;
@@ -523,33 +467,6 @@ export default function Home() {
               )}
             </div>
           </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="flex items-center bg-gradient-to-r from-gray-900 to-black border border-green-500/20 rounded-lg px-4 py-3 focus-within:border-green-400/50 transition-colors">
-              <FontAwesomeIcon icon={faSearch} className="w-4 h-4 text-gray-400 mr-3" />
-              <input
-                type="text"
-                placeholder="Search tokens by name, symbol, or contract address..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="ml-2 text-gray-400 hover:text-green-400 transition-colors"
-                >
-                  <FontAwesomeIcon icon={faTimes} className="w-4 h-4" />
-                </button>
-              )}
-              {isSearching && (
-                <div className="ml-2">
-                  <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </header>
 
@@ -562,7 +479,7 @@ export default function Home() {
               {filteredTokens.length} Tokens
             </h2>
             <span className="text-sm text-gray-400 transition-all duration-300">
-              {searchQuery.trim() ? `Search: "${searchQuery}"` : `(${filter === 'all' ? 'All' : filter === 'new' ? 'New' : filter === 'bonded' ? 'Bonded' : 'Mooning'})`}
+              ({filter === 'all' ? 'All' : filter === 'new' ? 'New' : filter === 'bonded' ? 'Bonded' : 'Mooning'})
             </span>
             {updating && (
               <div className="flex items-center space-x-2">
@@ -595,7 +512,7 @@ export default function Home() {
           {filteredTokens.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-400">
-                {searchQuery.trim() ? 'No tokens found matching your search' : 'No tokens found'}
+                No tokens found
               </p>
             </div>
           ) : (
