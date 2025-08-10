@@ -1,37 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Real bags.fm API integration - fetch from leaderboard with cache busting
+// Fallback mock data for when bags.fm API is unavailable
+const mockTokens = [
+  {
+    id: "token-1",
+    name: "BagsCoin",
+    symbol: "BAGS",
+    description: "The official token of bags.fm platform",
+    marketCap: 2500000,
+    price: 0.025,
+    change24h: 15.5,
+    volume24h: 125000,
+    totalSupply: 100000000,
+    status: "bonded" as const,
+    imageUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=BAGS",
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    mint: "So11111111111111111111111111111111111111112",
+    contractAddress: "So11111111111111111111111111111111111111112",
+    hasReached75k: true,
+    isBonded: true,
+    socials: {
+      website: "https://bags.fm",
+      twitter: "https://twitter.com/bagsfm",
+      telegram: "https://t.me/bagsfm"
+    }
+  },
+  {
+    id: "token-2", 
+    name: "PumpFun Token",
+    symbol: "PUMP",
+    description: "Community-driven token on Solana",
+    marketCap: 890000,
+    price: 0.0089,
+    change24h: -3.2,
+    volume24h: 45000,
+    totalSupply: 100000000,
+    status: "new" as const,
+    imageUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=PUMP",
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    contractAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    hasReached75k: true,
+    isBonded: false,
+    socials: {
+      website: "https://pump.fun"
+    }
+  }
+];
+
+// Real bags.fm API integration with enhanced error handling
 async function fetchBagsTokens() {
   try {
+    console.log(`🔄 API call at ${new Date().toLocaleTimeString()}`);
+    
     // Add cache busting parameter to ensure fresh data
     const cacheBuster = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(`https://api2.bags.fm/api/v1/token-launch/leaderboard?_=${cacheBuster}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (compatible; bagsdex/1.0)',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache'
       },
-      // Prevent caching
-      cache: 'no-store'
+      signal: controller.signal,
+      // Prevent caching and set timeout
+      cache: 'no-store',
+      // @ts-ignore - Next.js specific
+      next: { revalidate: 0 }
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.warn(`⚠️ bags.fm API returned status ${response.status}, using fallback data`);
+      return [];
     }
 
     const data = await response.json();
     const tokens = data?.success ? data.response : [];
     
-    // Log new token count for debugging
     console.log(`✅ Fetched ${tokens.length} tokens from bags.fm leaderboard`);
     
     return tokens;
   } catch (error) {
     console.error('❌ Error fetching from bags.fm API:', error);
-    return [];
+    return null; // Return null instead of empty array to distinguish from no data
   }
 }
 
@@ -68,8 +126,20 @@ export async function GET() {
     // Fetch real tokens from bags.fm leaderboard
     const bagsTokens = await fetchBagsTokens();
     
-    if (bagsTokens.length === 0) {
-      console.log('⚠️ No tokens received from bags.fm, using fallback data');
+    // Check if we got tokens from the API (null means error, empty array means no data)
+    if (!bagsTokens || bagsTokens.length === 0) {
+      console.log('⚠️ No tokens received from bags.fm API, using fallback data');
+      const fallbackTokens = await generateFallbackTokens();
+      
+      return new NextResponse(JSON.stringify(fallbackTokens.slice(0, 20)), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
     }
     
     // Process the real tokens from bags.fm leaderboard
