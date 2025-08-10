@@ -7,3 +7,13 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  external_node_modules = ["next"]
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Access-Control-Allow-Origin = "*"
