@@ -50,6 +50,7 @@ interface Token {
 // API function to fetch Solana tokens from our API route
 async function fetchSolanaTokens(): Promise<Token[]> {
   try {
+    console.log('🌐 Fetching tokens from /api/tokens');
     const response = await fetch('/api/tokens', {
       method: 'GET',
       headers: {
@@ -57,14 +58,17 @@ async function fetchSolanaTokens(): Promise<Token[]> {
       },
     });
 
+    console.log('🌐 Response status:', response.status, response.ok);
+
     if (!response.ok) {
       throw new Error('Failed to fetch tokens');
     }
 
     const tokens = await response.json();
+    console.log('🌐 Received tokens from API:', tokens.length, tokens);
     return tokens;
   } catch (error) {
-    console.error('Error fetching tokens:', error);
+    console.error('🌐 Error fetching tokens:', error);
     return [];
   }
 }
@@ -338,6 +342,26 @@ export default function Home() {
     setTimeout(() => setToast({ message: '', show: false }), 3000);
   };
 
+  // Simple effect for initial load
+  useEffect(() => {
+    const loadTokens = async () => {
+      try {
+        const response = await fetch('/api/tokens');
+        if (response.ok) {
+          const data = await response.json();
+          setTokens(data);
+          setLoading(false);
+          setIsInitialLoad(false);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setLoading(false);
+      }
+    };
+    
+    loadTokens();
+  }, []);
+
   // Handle search functionality
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
@@ -366,44 +390,6 @@ export default function Home() {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  useEffect(() => {
-    async function loadTokens() {
-      // Only show full loading on very first load
-      if (tokens.length === 0 && isInitialLoad) {
-        setLoading(true);
-      } else {
-        // For subsequent updates, just show updating indicator
-        setUpdating(true);
-      }
-      
-      try {
-        const fetchedTokens = await fetchSolanaTokens();
-        // Sort tokens by creation date (most recent first)
-        const sortedTokens = fetchedTokens.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA; // Most recent first
-        });
-        setTokens(sortedTokens);
-        setLastUpdate(new Date());
-        if (isInitialLoad) {
-          setIsInitialLoad(false);
-        }
-      } catch (error) {
-        console.error('Error loading tokens:', error);
-      } finally {
-        setLoading(false);
-        setUpdating(false);
-      }
-    }
-    
-    loadTokens();
-    
-    // Refresh data every 15 seconds for real-time updates
-    const interval = setInterval(loadTokens, 15000);
-    return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayTokens = searchQuery.trim() ? searchResults : tokens;
   const filteredTokens = displayTokens.filter(token => {
