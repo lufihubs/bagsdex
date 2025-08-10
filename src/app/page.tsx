@@ -407,9 +407,15 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <FontAwesomeIcon icon={faShoppingBag} className="w-7 h-7 text-green-400" />
+                    <Image
+                      src="/bags.jpg"
+                      alt="bagsdex logo"
+                      width={32}
+                      height={32}
+                      className="rounded-lg border border-green-500/30"
+                    />
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
                   </div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
@@ -455,9 +461,15 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <FontAwesomeIcon icon={faShoppingBag} className="w-7 h-7 text-green-400" />
+                  <Image
+                    src="/bags.jpg"
+                    alt="bagsdex logo"
+                    width={32}
+                    height={32}
+                    className="rounded-lg border border-green-500/30"
+                  />
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
                 </div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
