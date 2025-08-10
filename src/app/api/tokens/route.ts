@@ -83,6 +83,14 @@ export async function GET() {
       // We'll consider tokens "bonded" if they have high market cap or price
       const isBonded = marketCap > 100000 || price > 0.001;
       
+      // Generate realistic creation times (last 7 days, with newer tokens being more likely)
+      const now = Date.now();
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+      // Bias towards newer tokens (exponential distribution)
+      const ageWeight = Math.pow(Math.random(), 2); // Squares make newer tokens more likely
+      const tokenAge = ageWeight * maxAge;
+      const createdAt = new Date(now - tokenAge);
+      
       return {
         id: token.tokenAddress || `token-${index}`,
         name: token.name || `Token ${index + 1}`,
@@ -95,7 +103,7 @@ export async function GET() {
         totalSupply: estimatedSupply,
         status: isBonded ? 'bonded' : 'new',
         imageUrl: token.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${token.symbol || index}`,
-        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: createdAt.toISOString(),
         mint: token.tokenAddress,
         contractAddress: token.tokenAddress,
         hasReached75k: marketCap > 75000,
@@ -110,11 +118,21 @@ export async function GET() {
 
     // If we got tokens, return them. Otherwise, use fallback data.
     if (processedTokens.length > 0) {
-      // Shuffle and return up to 30 tokens for variety
-      const shuffled = processedTokens.sort(() => Math.random() - 0.5);
-      const result = shuffled.slice(0, 30);
+      // Sort by creation date (newest first) then by market cap for variety
+      const sorted = processedTokens.sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        // First sort by date (newest first)
+        if (dateB !== dateA) {
+          return dateB - dateA;
+        }
+        // Then by market cap (highest first) for ties
+        return b.marketCap - a.marketCap;
+      });
       
-      console.log(`📦 Returning ${result.length} processed tokens`);
+      const result = sorted.slice(0, 30);
+      
+      console.log(`📦 Returning ${result.length} processed tokens (sorted by age)`);
       
       // Return with no-cache headers to ensure real-time updates
       return new NextResponse(JSON.stringify(result), {
